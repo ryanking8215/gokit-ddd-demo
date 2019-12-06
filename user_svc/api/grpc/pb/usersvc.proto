@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/empty.proto";
+
+// The User service definition.
+service UserSvc {
+  rpc Find(google.protobuf.Empty) returns (FindReply);
+  rpc Get(ID) returns (GetReply);
+}
+
+message Error {
+    int32 code = 1;
+    string reason = 2;
+}
+
+message ID {
+  int64 id = 1;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+}
+
+message FindReply {
+  repeated User users=1;
+}
+
+message GetReply {
+  User user = 1;
+}
+
