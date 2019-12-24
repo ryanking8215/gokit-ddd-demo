@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"gokit-ddd-demo/user_svc/domain/user"
 	"net"
 	"net/http"
 	"os"
@@ -15,8 +16,7 @@ import (
 	apigrpc "gokit-ddd-demo/user_svc/api/grpc"
 	"gokit-ddd-demo/user_svc/api/grpc/pb"
 	apihttp "gokit-ddd-demo/user_svc/api/http"
-	"gokit-ddd-demo/user_svc/domain/models"
-	"gokit-ddd-demo/user_svc/domain/user"
+	//"gokit-ddd-demo/user_svc/domain/user"
 	"gokit-ddd-demo/user_svc/infras/inmem"
 )
 
@@ -49,11 +49,12 @@ func main() {
 	// init infras and domain
 	var (
 		userRepo = inmem.NewUserRepo()
-		userSvc  = user.NewUserService(userRepo)
+		//orderGRPCClient = ordergrpc.NewGRPCClient(sd.FixedInstancer{":8092"}, 3, 5*time.Second, logger)
+		userSvc = user.NewUserService(userRepo)
 	)
-	_ = userRepo.InitMockData([]*models.User{
-		&models.User{ID: 1, Name: "user1"},
-		&models.User{ID: 2, Name: "user2"},
+	_ = userRepo.InitMockData([]*user.User{
+		&user.User{ID: 1, Name: "user1"},
+		&user.User{ID: 2, Name: "user2"},
 	})
 
 	var (

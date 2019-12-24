@@ -17,7 +17,7 @@ func decodeFindRequest(_ context.Context, grpcReq interface{}) (interface{}, err
 
 func encodeFindResponse(_ context.Context, response interface{}) (interface{}, error) {
 	orders := response.([]*order.Order)
-	rsp := pb.FindReply{}
+	rsp := &pb.FindReply{}
 	for _, o := range orders {
 		pbOrder := &pb.Order{Id: o.ID, Userid: o.UserID, Product: o.Product}
 		rsp.Order = append(rsp.Order, pbOrder)
@@ -32,7 +32,7 @@ func decodeGetRequest(_ context.Context, grpcReq interface{}) (interface{}, erro
 
 func encodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
 	o := response.(*order.Order)
-	rsp := pb.GetReply{}
+	rsp := &pb.GetReply{}
 	rsp.Order = &pb.Order{Id: o.ID, Userid: o.UserID, Product: o.Product}
 	return rsp, nil
 }

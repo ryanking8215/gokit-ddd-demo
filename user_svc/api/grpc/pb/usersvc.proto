@@ -2,17 +2,20 @@ syntax = "proto3";
 
 package pb;
 
-import "google/protobuf/empty.proto";
+//import "google/protobuf/empty.proto";
 
 // The User service definition.
 service UserSvc {
-  rpc Find(google.protobuf.Empty) returns (FindReply);
+  rpc Find(FindReq) returns (FindReply);
   rpc Get(ID) returns (GetReply);
 }
 
 message Error {
     int32 code = 1;
     string reason = 2;
+}
+
+message FindReq {
 }
 
 message ID {

@@ -1,15 +1,17 @@
 package main
 
 import (
+	"os"
+	"time"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"os"
-	"time"
 
 	"gokit-ddd-demo/api_gateway/api"
-	"gokit-ddd-demo/api_gateway/svc/usersvc"
+	ordergrpc "gokit-ddd-demo/order_svc/infras/grpc"
+	usergrpc "gokit-ddd-demo/user_svc/infras/grpc"
 )
 
 func main() {
@@ -39,6 +41,10 @@ func main() {
 func setupService(logger log.Logger) {
 	{
 		instance := ":8082"
-		api.UserSvc = usersvc.NewGRPCClient(sd.FixedInstancer{instance}, 3, 5*time.Second, logger)
+		api.UserSvc = usergrpc.NewGRPCClient(sd.FixedInstancer{instance}, 3, 5*time.Second, logger)
+	}
+	{
+		instance := ":8092"
+		api.OrderSvc = ordergrpc.NewGRPCClient(sd.FixedInstancer{instance}, 3, 5*time.Second, logger)
 	}
 }

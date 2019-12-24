@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"gokit-ddd-demo/user_svc/domain/common"
-	"gokit-ddd-demo/user_svc/domain/models"
 	"gokit-ddd-demo/user_svc/domain/user"
 )
 
@@ -12,18 +11,18 @@ var _ user.Repo = (*userRepo)(nil)
 
 type userRepo struct {
 	rw      sync.RWMutex
-	users   map[int64]*models.User
+	users   map[int64]*user.User
 	idIndex int64
 }
 
 func NewUserRepo() *userRepo {
 	return &userRepo{
-		users:   make(map[int64]*models.User),
+		users:   make(map[int64]*user.User),
 		idIndex: 1,
 	}
 }
 
-func (r *userRepo) InitMockData(users []*models.User) error {
+func (r *userRepo) InitMockData(users []*user.User) error {
 	r.rw.Lock()
 	defer r.rw.Unlock()
 
@@ -36,26 +35,28 @@ func (r *userRepo) InitMockData(users []*models.User) error {
 	return nil
 }
 
-func (r *userRepo) Find() ([]*models.User, error) {
+func (r *userRepo) Find() ([]*user.User, error) {
 	r.rw.RLock()
 	defer r.rw.RUnlock()
 
-	items := make([]*models.User, 0, len(r.users))
-	for _, v := range r.users {
-		items = append(items, v)
+	items := make([]*user.User, 0, len(r.users))
+	for _, u := range r.users {
+		uclone := *u
+		items = append(items, &uclone)
 	}
 	return items, nil
 }
 
-func (r *userRepo) Get(id int64) (*models.User, error) {
+func (r *userRepo) Get(id int64) (*user.User, error) {
 	r.rw.RLock()
 	defer r.rw.RUnlock()
 
-	item, ok := r.users[id]
+	u, ok := r.users[id]
 	if !ok {
 		return nil, common.ErrNotFound
 	}
-	return item, nil
+	uclone := *u
+	return &uclone, nil
 }
 
 func (r *userRepo) Delete(id int64) error {
@@ -71,7 +72,7 @@ func (r *userRepo) Delete(id int64) error {
 	return nil
 }
 
-func (r *userRepo) Save(u *models.User) error {
+func (r *userRepo) Save(u *user.User) error {
 	r.rw.Lock()
 	defer r.rw.Unlock()
 

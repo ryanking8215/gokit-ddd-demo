@@ -48,7 +48,7 @@ func LoggingMiddleware(name string, logger log.Logger) endpoint.Middleware {
 
 func MiscMiddleware(name string, logger log.Logger, duration metrics.Histogram) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		next = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(next)
+		next = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 100))(next)
 		next = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(next)
 		//next = opentracing.TraceServer(otTracer, name)(next)
 		//next = zipkin.TraceEndpoint(zipkinTracer, name)(next)

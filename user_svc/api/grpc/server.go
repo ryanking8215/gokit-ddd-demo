@@ -9,8 +9,6 @@ import (
 	//"github.com/go-kit/kit/transport"
 	kitlog "github.com/go-kit/kit/log"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
-	"github.com/golang/protobuf/ptypes/empty"
-
 	"gokit-ddd-demo/user_svc/api/endpoint"
 	"gokit-ddd-demo/user_svc/api/grpc/pb"
 	"gokit-ddd-demo/user_svc/domain/user"
@@ -64,7 +62,7 @@ func NewGRPCServer(svc user.Service, logger kitlog.Logger) pb.UserSvcServer {
 	return srv
 }
 
-func (s *grpcServer) Find(ctx context.Context, req *empty.Empty) (*pb.FindReply, error) {
+func (s *grpcServer) Find(ctx context.Context, req *pb.FindReq) (*pb.FindReply, error) {
 	log.Println(">>>>> find")
 	_, rep, err := s.find.ServeGRPC(ctx, req)
 	if err != nil {

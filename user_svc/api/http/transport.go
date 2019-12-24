@@ -15,7 +15,14 @@ import (
 )
 
 func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	return nil, nil
+	vals := r.URL.Query()
+	v, ok := vals["with_orders"]
+	if ok {
+		if len(v) == 0 || v[0] == "true" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func decodeGetRequest(_ context.Context, r *http.Request) (interface{}, error) {

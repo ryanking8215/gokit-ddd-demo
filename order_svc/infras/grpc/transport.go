@@ -1,26 +1,28 @@
-package usersvc
+package grpc
 
 import (
 	"context"
 
-	pb "gokit-ddd-demo/user_svc/api/grpc/pb"
-	"gokit-ddd-demo/user_svc/domain/user"
+	pb "gokit-ddd-demo/order_svc/api/grpc/pb"
+	//"gokit-ddd-demo/order_svc/domain/models"
+	"gokit-ddd-demo/order_svc/domain/order"
 )
 
 func encodeFindRequest(_ context.Context, request interface{}) (interface{}, error) {
-	return nil, nil
+	userID := request.(int64)
+	return &pb.ID{Id: userID}, nil
 }
 
 func decodeFindResponse(_ context.Context, response interface{}) (interface{}, error) {
 	reply := response.(*pb.FindReply)
-	var users []*user.User
-	for _, u := range reply.GetUsers() {
-		users = append(users, &user.User{
-			ID:   u.Id,
-			Name: u.Name,
+	var orders []*order.Order
+	for _, o := range reply.GetOrder() {
+		orders = append(orders, &order.Order{
+			ID:      o.Id,
+			Product: o.Product,
 		})
 	}
-	return users, nil
+	return orders, nil
 }
 
 func encodeGetRequest(_ context.Context, request interface{}) (interface{}, error) {
@@ -30,12 +32,12 @@ func encodeGetRequest(_ context.Context, request interface{}) (interface{}, erro
 
 func decodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
 	reply := response.(*pb.GetReply)
-	u := reply.GetUser()
-	var item *user.User
-	if u != nil {
-		item = &user.User{
-			ID:   u.Id,
-			Name: u.Name,
+	o := reply.GetOrder()
+	var item *order.Order
+	if o != nil {
+		item = &order.Order{
+			ID:      o.Id,
+			Product: o.Product,
 		}
 	}
 	return item, nil

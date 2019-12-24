@@ -1,4 +1,4 @@
-package usersvc
+package grpc
 
 import (
 	"context"
@@ -126,14 +126,6 @@ func (c *grpcClient) Get(ctx context.Context, id int64) (*user.User, error) {
 		return nil, err
 	}
 	return rsp.(*user.User), err
-}
-
-func (c *grpcClient) Delete(ctx context.Context, id int64) error {
-	return nil
-}
-
-func (c *grpcClient) Save(ctx context.Context, u *user.User) error {
-	return nil
 }
 
 func newFactory(makeEndpoint func(conn *grpc.ClientConn) endpoint.Endpoint) sd.Factory {

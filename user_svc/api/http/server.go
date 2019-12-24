@@ -45,7 +45,7 @@ func NewHTTPHandler(svc user.Service, logger log.Logger) http.Handler {
 			encodeResponse,
 			options...,
 		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
-		))
+		)).Methods("GET")
 	}
 	{
 		ep := apiendpoint.MakeGetEndpoint(svc)
@@ -56,7 +56,8 @@ func NewHTTPHandler(svc user.Service, logger log.Logger) http.Handler {
 			encodeResponse,
 			options...,
 		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Concat", logger)))...,
-		))
+		)).Methods("GET")
 	}
+
 	return m
 }

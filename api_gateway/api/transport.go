@@ -5,5 +5,9 @@ import (
 	"gokit-ddd-demo/user_svc/domain/user"
 )
 
-type User = user.User
 type Order = order.Order
+
+type User struct {
+	*user.User
+	Orders []*Order `json:"orders"`
+}

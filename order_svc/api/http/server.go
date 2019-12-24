@@ -38,25 +38,25 @@ func NewHTTPHandler(svc order.Service, logger log.Logger) http.Handler {
 	m := mux.NewRouter()
 	{
 		ep := apiendpoint.MakeFindEndpoint(svc)
-		ep = apiendpoint.MiscMiddleware("ordersvc.find", logger, nil)(ep)
+		ep = apiendpoint.MiscMiddleware("ordersvc.Find", logger, nil)(ep)
 		m.Handle("/orders", httptransport.NewServer(
 			ep,
 			decodeFindRequest,
 			encodeResponse,
 			options...,
 		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
-		))
+		)).Methods("GET")
 	}
 	{
 		ep := apiendpoint.MakeGetEndpoint(svc)
-		ep = apiendpoint.MiscMiddleware("ordersvc.get", logger, nil)(ep)
+		ep = apiendpoint.MiscMiddleware("ordersvc.Get", logger, nil)(ep)
 		m.Handle("/orders/{id:[0-9]+}", httptransport.NewServer(
 			ep,
 			decodeGetRequest,
 			encodeResponse,
 			options...,
 		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Concat", logger)))...,
-		))
+		)).Methods("GET")
 	}
 	return m
 }

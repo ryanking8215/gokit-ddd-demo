@@ -41,12 +41,14 @@ func (r *orderRepo) Find(userID int64) ([]*order.Order, error) {
 	defer r.rw.RUnlock()
 
 	items := make([]*order.Order, 0, len(r.orders))
-	for _, v := range r.orders {
+	for _, o := range r.orders {
 		if userID <= 0 {
-			items = append(items, v)
+			oclone := *o
+			items = append(items, &oclone)
 		} else {
-			if v.UserID == userID {
-				items = append(items, v)
+			if o.UserID == userID {
+				oclone := *o
+				items = append(items, &oclone)
 			}
 		}
 	}
@@ -57,11 +59,12 @@ func (r *orderRepo) Get(id int64) (*order.Order, error) {
 	r.rw.RLock()
 	defer r.rw.RUnlock()
 
-	item, ok := r.orders[id]
+	o, ok := r.orders[id]
 	if !ok {
 		return nil, common.ErrNotFound
 	}
-	return item, nil
+	oclone := *o
+	return &oclone, nil
 }
 
 func (r *orderRepo) Delete(id int64) error {

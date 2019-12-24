@@ -3,11 +3,9 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
-	"strings"
-
 	//"github.com/go-kit/kit/endpoint"
 
 	"gokit-ddd-demo/order_svc/domain/common"
@@ -17,7 +15,7 @@ func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) 
 	var userID int64
 	var err error
 	query := r.URL.Query()
-	str := query.Get("userid")
+	str := query.Get("user_id")
 	if str != "" {
 		userID, err = strconv.ParseInt(str, 10, 64)
 		if err != nil {
@@ -28,11 +26,8 @@ func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) 
 }
 
 func decodeGetRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	idx := strings.Index(r.URL.Path, "orders/")
-	if idx < 0 {
-		return nil, errors.New("invalid url path")
-	}
-	idstr := r.URL.Path[idx+len("orders/"):]
+	vars := mux.Vars(r)
+	idstr := vars["id"]
 	id, err := strconv.ParseInt(idstr, 10, 64)
 	if err != nil {
 		return nil, err
