@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package pb;
+
+//import "google/protobuf/empty.proto";
+
+// The Order service definition.
+service OrderSvc {
+  rpc Find(ID) returns (FindReply);
+  rpc Get(ID) returns (GetReply);
+}
+
+message Error {
+    int32 code = 1;
+    string reason = 2;
+}
+
+message ID {
+  int64 id = 1;
+}
+
+message Order {
+  int64 id = 1;
+  int64 userid = 2;
+  string product = 3;
+}
+
+message FindReply {
+  repeated Order order=1;
+}
+
+message GetReply {
+  Order order = 1;
+}
+

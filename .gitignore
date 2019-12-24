@@ -1,0 +1,6 @@
+.idea
+.swp
+go.sum
+api_gateway/api_gateway
+user_svc/user_svc
+order_svc/order_svc
