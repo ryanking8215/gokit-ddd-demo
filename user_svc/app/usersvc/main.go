@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"os"
 	"text/tabwriter"
-	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/openzipkin/zipkin-go"
+	zipkinhttp "github.com/openzipkin/zipkin-go/reporter/http"
 	"google.golang.org/grpc"
 
 	"gokit-ddd-demo/lib/kitx"
@@ -48,6 +49,22 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
+	// init zipkin trancer
+	var tracer *zipkin.Tracer
+	{
+		zipkinUrl := "http://127.0.0.1:9411/api/v2/spans"
+		zipkinEndpoint, err := zipkin.NewEndpoint("user-svc", "")
+		if err != nil {
+			panic(err)
+		}
+		reporter := zipkinhttp.NewReporter(zipkinUrl)
+		zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
+		if err != nil {
+			panic(err)
+		}
+		tracer = zipkinTracer
+	}
+
 	// init infras and svc
 	var (
 		userRepo = inmem.NewUserRepo()
@@ -59,9 +76,11 @@ func main() {
 		{ID: 2, Name: "user2"},
 	})
 
+	srvOpts := kitx.NewServerOptions(kitx.WithLogger(logger), kitx.WithRateLimit(nil), kitx.WithCircuitBreaker(0), kitx.WithMetrics(nil), kitx.WithZipkinTracer(tracer))
+
 	var (
-		grpcServer  = apigrpc.NewGRPCServer(userSvc, kitx.WithLogger(logger), kitx.WithRateLimit(time.Second, 100), kitx.WithCircuitBreaker(0), kitx.WithMetrics())
-		httpHandler = apihttp.NewHTTPHandler(userSvc, kitx.WithLogger(logger), kitx.WithRateLimit(time.Second, 100), kitx.WithCircuitBreaker(0), kitx.WithMetrics())
+		grpcServer  = apigrpc.NewGRPCServer(userSvc, srvOpts)
+		httpHandler = apihttp.NewHTTPHandler(userSvc, srvOpts)
 	)
 
 	// The HTTP listener mounts the Go kit HTTP handler we created.

@@ -8,12 +8,13 @@ import (
 	"gokit-ddd-demo/user_svc/svc/user"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/transport"
 	httptransport "github.com/go-kit/kit/transport/http"
 
 	"github.com/gorilla/mux"
 )
 
-func NewHTTPHandler(svc user.Service, opts ...kitx.Option) http.Handler {
+func NewHTTPHandler(svc user.Service, opts *kitx.ServerOptions) http.Handler {
 	// Zipkin HTTP Server Trace can either be instantiated per endpoint with a
 	// provided operation name or a global tracing service can be instantiated
 	// without an operation name and fed to each Go kit endpoint as ServerOption.
@@ -26,10 +27,11 @@ func NewHTTPHandler(svc user.Service, opts ...kitx.Option) http.Handler {
 	//	httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 	//	zipkinServer,
 	//}
+	logger := opts.Logger()
 
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(errorEncoder),
-		//httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 	}
 
 	m := mux.NewRouter()
@@ -38,21 +40,21 @@ func NewHTTPHandler(svc user.Service, opts ...kitx.Option) http.Handler {
 		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 			ep := api.MakeFindEndpoint(svc)
 			return ep, "user_svc.Find"
-		}, opts...)
+		}, opts)
 
 		m.Handle("/users", httptransport.NewServer(
 			ep,
 			decodeFindRequest,
 			encodeResponse,
 			options...,
-		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
+		// append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
 		)).Methods("GET")
 	}
 	{
 		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 			ep := api.MakeGetEndpoint(svc)
 			return ep, "user_svc.Get"
-		}, opts...)
+		}, opts)
 
 		m.Handle("/users/{id:[0-9]+}", httptransport.NewServer(
 			ep,

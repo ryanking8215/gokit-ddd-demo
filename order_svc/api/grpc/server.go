@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/tracing/zipkin"
+	"github.com/go-kit/kit/transport"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
 
 	"gokit-ddd-demo/lib/kitx"
@@ -19,29 +21,40 @@ type grpcServer struct {
 	get  grpctransport.Handler
 }
 
-func makeFindHandler(svc order.Service, opts ...kitx.Option) grpctransport.Handler {
+func makeFindHandler(svc order.Service, options []grpctransport.ServerOption, opts *kitx.ServerOptions) grpctransport.Handler {
 	ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 		ep := api.MakeFindEndpoint(svc)
 		return ep, "order_svc.Find"
-	}, opts...)
+	}, opts)
 
-	return grpctransport.NewServer(ep, decodeFindRequest, encodeFindResponse)
+	return grpctransport.NewServer(ep, decodeFindRequest, encodeFindResponse, options...)
 }
 
-func makeGetHandler(svc order.Service, opts ...kitx.Option) grpctransport.Handler {
+func makeGetHandler(svc order.Service, options []grpctransport.ServerOption, opts *kitx.ServerOptions) grpctransport.Handler {
 	ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 		ep := api.MakeGetEndpoint(svc)
 		return ep, "order_svc.Get"
-	}, opts...)
+	}, opts)
 
-	return grpctransport.NewServer(ep, decodeGetRequest, encodeGetResponse)
+	return grpctransport.NewServer(ep, decodeGetRequest, encodeGetResponse, options...)
 }
 
-func NewGRPCServer(svc order.Service, opts ...kitx.Option) pb.OrderSvcServer {
+func NewGRPCServer(svc order.Service, opts *kitx.ServerOptions) pb.OrderSvcServer {
 	srv := &grpcServer{}
 
-	srv.find = makeFindHandler(svc, opts...)
-	srv.get = makeGetHandler(svc, opts...)
+	logger := opts.Logger()
+	tracer := opts.ZipkinTracer()
+
+	options := []grpctransport.ServerOption{
+		grpctransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+	}
+
+	if tracer != nil {
+		options = append(options, zipkin.GRPCServerTrace(tracer))
+	}
+
+	srv.find = makeFindHandler(svc, options, opts)
+	srv.get = makeGetHandler(svc, options, opts)
 
 	return srv
 }

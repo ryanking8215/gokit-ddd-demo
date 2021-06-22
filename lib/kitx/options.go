@@ -4,6 +4,9 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/ratelimit"
+	"github.com/openzipkin/zipkin-go"
 
 	stdopentracing "github.com/opentracing/opentracing-go"
 )
@@ -16,6 +19,7 @@ type options struct {
 	circuitBreakerOption
 	rateLimitOption
 	openTracingOption
+	zipkinTracerOption
 	loggerOption
 	loadBalanceOption
 	metricsOption
@@ -35,17 +39,15 @@ func WithCircuitBreaker(timeout time.Duration) Option {
 }
 
 type rateLimitOption struct {
-	enable   bool
-	every    time.Duration
-	tokenCnt int
+	limiter ratelimit.Allower
 }
 
 func (o rateLimitOption) apply(opts *options) {
 	opts.rateLimitOption = o
 }
 
-func WithRateLimit(every time.Duration, tokenCnt int) Option {
-	return rateLimitOption{true, every, tokenCnt}
+func WithRateLimit(limiter ratelimit.Allower) Option {
+	return rateLimitOption{limiter}
 }
 
 type openTracingOption struct {
@@ -60,9 +62,6 @@ func WithOpenTracing(otTracer stdopentracing.Tracer) Option {
 	return openTracingOption{otTracer}
 }
 
-// func WithZipkin() Option {
-// }
-
 type loggerOption struct {
 	logger log.Logger
 }
@@ -76,27 +75,78 @@ func WithLogger(logger log.Logger) Option {
 }
 
 type loadBalanceOption struct {
-	enable       bool
-	retryMax     int
-	retryTimeout time.Duration
+	retryMax int
+	timeout  time.Duration
 }
 
 func (o loadBalanceOption) apply(opts *options) {
 	opts.loadBalanceOption = o
 }
 
-func WithLoadBalance(retryMax int, retryTimeout time.Duration) Option {
-	return loadBalanceOption{true, retryMax, retryTimeout}
+func WithLoadBalance(retryMax int, timeout time.Duration) Option {
+	return loadBalanceOption{retryMax, timeout}
 }
 
 type metricsOption struct {
-	enable bool
+	histogram metrics.Histogram
 }
 
 func (o metricsOption) apply(opts *options) {
 	opts.metricsOption = o
 }
 
-func WithMetrics() Option {
-	return metricsOption{true}
+func WithMetrics(histogram metrics.Histogram) Option {
+	return metricsOption{histogram}
+}
+
+type zipkinTracerOption struct {
+	tracer *zipkin.Tracer
+}
+
+func (o zipkinTracerOption) apply(opts *options) {
+	opts.zipkinTracerOption = o
+}
+
+func WithZipkinTracer(tracer *zipkin.Tracer) Option {
+	return zipkinTracerOption{tracer}
+}
+
+type ServerOptions struct {
+	options
+}
+
+func NewServerOptions(opts ...Option) *ServerOptions {
+	so := &ServerOptions{}
+	for _, o := range opts {
+		o.apply(&so.options)
+	}
+	return so
+}
+
+func (o *ServerOptions) Logger() log.Logger {
+	return o.loggerOption.logger
+}
+
+func (o *ServerOptions) ZipkinTracer() *zipkin.Tracer {
+	return o.zipkinTracerOption.tracer
+}
+
+type ClientOptions struct {
+	options
+}
+
+func NewClientOptions(opts ...Option) *ClientOptions {
+	co := &ClientOptions{}
+	for _, o := range opts {
+		o.apply(&co.options)
+	}
+	return co
+}
+
+func (o *ClientOptions) Logger() log.Logger {
+	return o.loggerOption.logger
+}
+
+func (o *ClientOptions) ZipkinTracer() *zipkin.Tracer {
+	return o.zipkinTracerOption.tracer
 }

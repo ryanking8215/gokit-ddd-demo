@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/sd"
+	"github.com/go-kit/kit/tracing/zipkin"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"google.golang.org/grpc"
 
@@ -36,8 +37,14 @@ func (c *Client) Get(ctx context.Context, id int64) (*user.User, error) {
 	return rsp.(*user.User), err
 }
 
-func NewClient(instancer sd.Instancer, opts ...kitx.Option) *Client {
+func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 	c := &Client{}
+
+	var options []grpctransport.ClientOption
+	tracer := opts.ZipkinTracer()
+	if tracer != nil {
+		options = append(options, zipkin.GRPCClientTrace(tracer))
+	}
 
 	c.find = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
@@ -47,9 +54,10 @@ func NewClient(instancer sd.Instancer, opts ...kitx.Option) *Client {
 			encodeFindRequest,
 			decodeFindResponse,
 			userpb.FindReply{},
-			//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
+			options...,
+		// append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint(), "user_srv.rpc.Find"
-	}, opts...)
+	}, opts)
 
 	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
@@ -59,9 +67,10 @@ func NewClient(instancer sd.Instancer, opts ...kitx.Option) *Client {
 			encodeGetRequest,
 			decodeGetResponse,
 			userpb.GetReply{},
-			//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
+			options...,
+		//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint(), "user_srv.rpc.Get"
-	}, opts...)
+	}, opts)
 
 	return c
 }

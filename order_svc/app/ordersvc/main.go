@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/openzipkin/zipkin-go"
+	zipkinhttp "github.com/openzipkin/zipkin-go/reporter/http"
 	"google.golang.org/grpc"
 
 	"gokit-ddd-demo/lib/kitx"
@@ -46,6 +48,21 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
+	var tracer *zipkin.Tracer
+	{
+		zipkinUrl := "http://127.0.0.1:9411/api/v2/spans"
+		zipkinEndpoint, err := zipkin.NewEndpoint("order-svc", "")
+		if err != nil {
+			panic(err)
+		}
+		reporter := zipkinhttp.NewReporter(zipkinUrl)
+		zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
+		if err != nil {
+			panic(err)
+		}
+		tracer = zipkinTracer
+	}
+
 	// init infras and domain
 	var (
 		orderRepo = inmem.NewOrderRepo()
@@ -57,9 +74,11 @@ func main() {
 		{ID: 3, UserID: 2, Product: "product1"},
 	})
 
+	srvOpts := kitx.NewServerOptions(kitx.WithLogger(logger), kitx.WithRateLimit(nil), kitx.WithCircuitBreaker(0), kitx.WithMetrics(nil), kitx.WithZipkinTracer(tracer))
+
 	var (
-		grpcServer  = apigrpc.NewGRPCServer(orderSvc, kitx.WithLogger(logger), kitx.WithRateLimit(time.Second, 100), kitx.WithCircuitBreaker(0), kitx.WithMetrics())
-		httpHandler = apihttp.NewHTTPHandler(orderSvc, kitx.WithLogger(logger), kitx.WithRateLimit(time.Second, 100), kitx.WithCircuitBreaker(0), kitx.WithMetrics())
+		grpcServer  = apigrpc.NewGRPCServer(orderSvc, srvOpts)
+		httpHandler = apihttp.NewHTTPHandler(orderSvc, srvOpts)
 	)
 
 	{

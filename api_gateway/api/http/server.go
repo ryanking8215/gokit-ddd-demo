@@ -3,54 +3,54 @@ package http
 import (
 	"net/http"
 
+	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/tracing/zipkin"
+	"github.com/go-kit/kit/transport"
+	httptransport "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
+
 	"gokit-ddd-demo/api_gateway/api"
 	"gokit-ddd-demo/api_gateway/svc"
 	"gokit-ddd-demo/lib/kitx"
-
-	httptransport "github.com/go-kit/kit/transport/http"
-
-	"github.com/gorilla/mux"
 )
 
-func NewHTTPHandler(s svc.Service, opts ...kitx.Option) http.Handler {
+func NewHTTPHandler(s svc.Service, opts *kitx.ServerOptions) http.Handler {
 	// Zipkin HTTP Server Trace can either be instantiated per endpoint with a
 	// provided operation name or a global tracing service can be instantiated
 	// without an operation name and fed to each Go kit endpoint as ServerOption.
 	// In the latter case, the operation name will be the endpoint's http method.
 	// We demonstrate a global tracing service here.
-	//zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
-	//
-	//options := []httptransport.ServerOption{
-	//	httptransport.ServerErrorEncoder(errorEncoder),
-	//	httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-	//	zipkinServer,
-	//}
 
-	// options := []httptransport.ServerOption{
-	// 	// httptransport.ServerErrorEncoder(errorEncoder),
-	// 	//httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-	// }
+	tracer := opts.ZipkinTracer()
+	zipkinServer := zipkin.HTTPServerTrace(tracer)
+
+	logger := opts.Logger()
+
+	options := []httptransport.ServerOption{
+		httptransport.ServerErrorEncoder(errorEncoder),
+		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+		zipkinServer,
+	}
 
 	r := mux.NewRouter()
 
-	makeUserHTTPHandler(s, r)
+	makeUserHTTPHandler(s, r, options, opts)
 
 	return r
 }
 
-func makeUserHTTPHandler(s svc.Service, r *mux.Router, opts ...kitx.Option) {
+func makeUserHTTPHandler(s svc.Service, r *mux.Router, httpOpts []httptransport.ServerOption, opts *kitx.ServerOptions) {
 	{
-		// ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
-		// 	ep := api.MakeFindUsersEndpoint(s)
-		// 	return ep, "user_svc.Find"
-		// }, opts...)
+		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+			ep := api.MakeFindUsersEndpoint(s)
+			return ep, "user_svc.Find"
+		}, opts)
 
 		r.Handle("/api/users", httptransport.NewServer(
-			api.MakeFindUsersEndpoint(s),
+			ep,
 			decodeFindUserRequest,
 			encodeResponse,
-			//options...,
-		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Sum", logger)))...,
+			httpOpts...,
 		)).Methods("GET")
 	}
 

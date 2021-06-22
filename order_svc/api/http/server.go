@@ -13,7 +13,7 @@ import (
 	"gokit-ddd-demo/order_svc/svc/order"
 )
 
-func NewHTTPHandler(svc order.Service, opts ...kitx.Option) http.Handler {
+func NewHTTPHandler(svc order.Service, opts *kitx.ServerOptions) http.Handler {
 	// Zipkin HTTP Server Trace can either be instantiated per endpoint with a
 	// provided operation name or a global tracing service can be instantiated
 	// without an operation name and fed to each Go kit endpoint as ServerOption.
@@ -38,7 +38,7 @@ func NewHTTPHandler(svc order.Service, opts ...kitx.Option) http.Handler {
 		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 			ep := api.MakeFindEndpoint(svc)
 			return ep, "order_svc.Find"
-		}, opts...)
+		}, opts)
 		m.Handle("/orders", httptransport.NewServer(
 			ep,
 			decodeFindRequest,
@@ -51,7 +51,7 @@ func NewHTTPHandler(svc order.Service, opts ...kitx.Option) http.Handler {
 		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
 			ep := api.MakeGetEndpoint(svc)
 			return ep, "order_svc.Get"
-		}, opts...)
+		}, opts)
 		m.Handle("/orders/{id:[0-9]+}", httptransport.NewServer(
 			ep,
 			decodeGetRequest,
@@ -60,5 +60,6 @@ func NewHTTPHandler(svc order.Service, opts ...kitx.Option) http.Handler {
 		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Concat", logger)))...,
 		)).Methods("GET")
 	}
+
 	return m
 }
