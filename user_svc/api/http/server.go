@@ -2,20 +2,18 @@ package http
 
 import (
 	"net/http"
-	//"time"
 
-	//"github.com/go-kit/kit/tracing/opentracing"
-	//"github.com/go-kit/kit/tracing/zipkin"
-	"github.com/go-kit/kit/log"
-	//"github.com/go-kit/kit/endpoint"
+	"gokit-ddd-demo/lib/kitx"
+	"gokit-ddd-demo/user_svc/api"
+	"gokit-ddd-demo/user_svc/svc/user"
+
+	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"github.com/gorilla/mux"
 
-	apiendpoint "gokit-ddd-demo/user_svc/api/endpoint"
-	"gokit-ddd-demo/user_svc/domain/user"
+	"github.com/gorilla/mux"
 )
 
-func NewHTTPHandler(svc user.Service, logger log.Logger) http.Handler {
+func NewHTTPHandler(svc user.Service, opts ...kitx.Option) http.Handler {
 	// Zipkin HTTP Server Trace can either be instantiated per endpoint with a
 	// provided operation name or a global tracing service can be instantiated
 	// without an operation name and fed to each Go kit endpoint as ServerOption.
@@ -34,11 +32,14 @@ func NewHTTPHandler(svc user.Service, logger log.Logger) http.Handler {
 		//httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 	}
 
-	//m := http.NewServeMux()
 	m := mux.NewRouter()
 	{
-		ep := apiendpoint.MakeFindEndpoint(svc)
-		ep = apiendpoint.MiscMiddleware("usersvc.Find", logger, nil)(ep)
+
+		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+			ep := api.MakeFindEndpoint(svc)
+			return ep, "user_svc.Find"
+		}, opts...)
+
 		m.Handle("/users", httptransport.NewServer(
 			ep,
 			decodeFindRequest,
@@ -48,8 +49,11 @@ func NewHTTPHandler(svc user.Service, logger log.Logger) http.Handler {
 		)).Methods("GET")
 	}
 	{
-		ep := apiendpoint.MakeGetEndpoint(svc)
-		ep = apiendpoint.MiscMiddleware("usersvc.Get", logger, nil)(ep)
+		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+			ep := api.MakeGetEndpoint(svc)
+			return ep, "user_svc.Get"
+		}, opts...)
+
 		m.Handle("/users/{id:[0-9]+}", httptransport.NewServer(
 			ep,
 			decodeGetRequest,

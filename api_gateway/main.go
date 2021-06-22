@@ -1,30 +1,23 @@
 package main
 
 import (
+	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
-	"gokit-ddd-demo/api_gateway/api"
-	ordergrpc "gokit-ddd-demo/order_svc/infras/grpc"
-	usergrpc "gokit-ddd-demo/user_svc/infras/grpc"
+	apihttp "gokit-ddd-demo/api_gateway/api/http"
+	"gokit-ddd-demo/api_gateway/svc"
+	"gokit-ddd-demo/lib/kitx"
+	ordergrpc "gokit-ddd-demo/order_svc/api/grpc"
+	"gokit-ddd-demo/order_svc/svc/order"
+	usergrpc "gokit-ddd-demo/user_svc/api/grpc"
+	"gokit-ddd-demo/user_svc/svc/user"
 )
 
 func main() {
-	// Echo instance
-	e := echo.New()
-
-	// Middleware
-	e.Use(middleware.Logger())
-	//e.Use(middleware.Recover())
-	e.HTTPErrorHandler = api.ErrorHandle
-
-	// Routes
-	api.SetupRouter(e)
+	errc := make(chan error)
 
 	var logger log.Logger
 	{
@@ -32,19 +25,30 @@ func main() {
 		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
-	setupService(logger)
 
-	// Start server
-	e.Logger.Fatal(e.Start(":1323"))
-}
+	httpAddr := ":1323"
 
-func setupService(logger log.Logger) {
+	var (
+		usersvc  user.Service
+		ordersvc order.Service
+	)
+
 	{
-		instance := ":8082"
-		api.UserSvc = usergrpc.NewGRPCClient(sd.FixedInstancer{instance}, 3, 5*time.Second, logger)
+		instance := []string{":8082"}
+		usersvc = usergrpc.NewClient(sd.FixedInstancer(instance), kitx.WithLogger(logger))
 	}
 	{
-		instance := ":8092"
-		api.OrderSvc = ordergrpc.NewGRPCClient(sd.FixedInstancer{instance}, 3, 5*time.Second, logger)
+		instance := []string{":8092"}
+		ordersvc = ordergrpc.NewClient(sd.FixedInstancer(instance), kitx.WithLogger(logger))
 	}
+	svc := svc.NewService(usersvc, ordersvc)
+
+	go func() {
+		logger.Log("transport", "HTTP", "addr", httpAddr)
+		handler := apihttp.NewHTTPHandler(svc)
+		errc <- http.ListenAndServe(httpAddr, handler)
+	}()
+
+	err := <-errc
+	logger.Log(err)
 }

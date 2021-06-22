@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"gokit-ddd-demo/user_svc/api/grpc/pb"
-	"gokit-ddd-demo/user_svc/domain/user"
+	"gokit-ddd-demo/user_svc/svc/user"
 )
 
 func decodeFindRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
@@ -32,4 +32,39 @@ func encodeGetResponse(_ context.Context, response interface{}) (interface{}, er
 	rsp := &pb.GetReply{}
 	rsp.User = &pb.User{Id: u.ID, Name: u.Name}
 	return rsp, nil
+}
+
+func encodeFindRequest(_ context.Context, request interface{}) (interface{}, error) {
+	return nil, nil
+}
+
+func decodeFindResponse(_ context.Context, response interface{}) (interface{}, error) {
+	reply := response.(*pb.FindReply)
+	var users []*user.User
+	for _, u := range reply.GetUsers() {
+		user := &user.User{
+			ID:   u.Id,
+			Name: u.Name,
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func encodeGetRequest(_ context.Context, request interface{}) (interface{}, error) {
+	id := request.(int64)
+	return &pb.ID{Id: id}, nil
+}
+
+func decodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
+	reply := response.(*pb.GetReply)
+	u := reply.GetUser()
+	var item *user.User
+	if u != nil {
+		item = &user.User{
+			ID:   u.Id,
+			Name: u.Name,
+		}
+	}
+	return item, nil
 }

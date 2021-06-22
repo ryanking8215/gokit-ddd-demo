@@ -3,12 +3,12 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
-	//"github.com/go-kit/kit/endpoint"
 
-	"gokit-ddd-demo/order_svc/domain/common"
+	"github.com/gorilla/mux"
+
+	"gokit-ddd-demo/order_svc/svc/common"
 )
 
 func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -40,9 +40,6 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 		errorEncoder(ctx, err, w)
 		return nil
 	}
-	//if f, ok := response.(endpoint.Failer); ok && f.Failed() != nil {
-	//	return nil
-	//}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
 }

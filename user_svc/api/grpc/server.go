@@ -2,16 +2,14 @@ package grpc
 
 import (
 	"context"
-	"log"
 
-	//"github.com/go-kit/kit/tracing/opentracing"
-	//"github.com/go-kit/kit/tracing/zipkin"
-	//"github.com/go-kit/kit/transport"
-	kitlog "github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/endpoint"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
-	"gokit-ddd-demo/user_svc/api/endpoint"
+
+	"gokit-ddd-demo/lib/kitx"
+	"gokit-ddd-demo/user_svc/api"
 	"gokit-ddd-demo/user_svc/api/grpc/pb"
-	"gokit-ddd-demo/user_svc/domain/user"
+	"gokit-ddd-demo/user_svc/svc/user"
 )
 
 var _ pb.UserSvcServer = (*grpcServer)(nil)
@@ -21,49 +19,35 @@ type grpcServer struct {
 	get  grpctransport.Handler
 }
 
-func NewGRPCServer(svc user.Service, logger kitlog.Logger) pb.UserSvcServer {
-	// Zipkin GRPC Server Trace can either be instantiated per gRPC method with a
-	// provided operation name or a global tracing service can be instantiated
-	// without an operation name and fed to each Go kit gRPC server as a
-	// ServerOption.
-	// In the latter case, the operation name will be the endpoint's grpc method
-	// path if used in combination with the Go kit gRPC Interceptor.
-	//
-	// In this example, we demonstrate a global Zipkin tracing service with
-	// Go kit gRPC Interceptor.
-	//zipkinServer := zipkin.GRPCServerTrace(zipkinTracer)
-	//
-	//options := []grpctransport.ServerOption{
-	//	grpctransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-	//	zipkinServer,
-	//}
+func makeFindHandler(svc user.Service, opts ...kitx.Option) grpctransport.Handler {
+	ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+		ep := api.MakeFindEndpoint(svc)
+		return ep, "user_svc.Find"
+	}, opts...)
 
+	return grpctransport.NewServer(ep, decodeFindRequest, encodeFindResponse)
+}
+
+func makeGetHandler(svc user.Service, opts ...kitx.Option) grpctransport.Handler {
+	ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+		ep := api.MakeGetEndpoint(svc)
+		return ep, "user_svc.Get"
+	}, opts...)
+
+	return grpctransport.NewServer(ep, decodeGetRequest, encodeGetResponse)
+}
+
+func NewGRPCServer(svc user.Service, opts ...kitx.Option) pb.UserSvcServer {
 	srv := &grpcServer{}
-	{
-		ep := endpoint.MakeFindEndpoint(svc)
-		ep = endpoint.MiscMiddleware("usersvc.Find", logger, nil)(ep)
-		srv.find = grpctransport.NewServer(
-			ep,
-			decodeFindRequest,
-			encodeFindResponse,
-			//append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Sum", logger)))...,
-		)
-	}
-	{
-		ep := endpoint.MakeGetEndpoint(svc)
-		ep = endpoint.MiscMiddleware("usersvc.Get", logger, nil)(ep)
-		srv.get = grpctransport.NewServer(
-			ep,
-			decodeGetRequest,
-			encodeGetResponse,
-			//append(options, grpctransport.ServerBefore(opentracing.GRPCToContext(otTracer, "Sum", logger)))...,
-		)
-	}
+
+	srv.find = makeFindHandler(svc, opts...)
+	srv.get = makeGetHandler(svc, opts...)
+
 	return srv
 }
 
 func (s *grpcServer) Find(ctx context.Context, req *pb.FindReq) (*pb.FindReply, error) {
-	log.Println(">>>>> find")
+	println("server find")
 	_, rep, err := s.find.ServeGRPC(ctx, req)
 	if err != nil {
 		return nil, err
@@ -72,7 +56,7 @@ func (s *grpcServer) Find(ctx context.Context, req *pb.FindReq) (*pb.FindReply, 
 }
 
 func (s *grpcServer) Get(ctx context.Context, req *pb.ID) (*pb.GetReply, error) {
-	log.Println(">>>>> get")
+	println("server get")
 	_, rep, err := s.get.ServeGRPC(ctx, req)
 	if err != nil {
 		return nil, err

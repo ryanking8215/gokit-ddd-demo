@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
 	//"strings"
 
 	//"github.com/go-kit/kit/endpoint"
+	"github.com/gorilla/mux"
 
-	"gokit-ddd-demo/user_svc/domain/common"
+	"gokit-ddd-demo/user_svc/svc/common"
 )
 
 func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -32,11 +33,6 @@ func decodeGetRequest(_ context.Context, r *http.Request) (interface{}, error) {
 		return nil, errors.New("invalid id")
 	}
 
-	//idx := strings.Index(r.URL.Path, "users/")
-	//if idx < 0 {
-	//	return nil, errors.New("invalid url path")
-	//}
-	//idstr := r.URL.Path[idx+len("users/"):]
 	id, err := strconv.ParseInt(idstr, 10, 64)
 	if err != nil {
 		return nil, err
@@ -49,9 +45,6 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 		errorEncoder(ctx, err, w)
 		return nil
 	}
-	//if f, ok := response.(endpoint.Failer); ok && f.Failed() != nil {
-	//	return nil
-	//}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
 }
