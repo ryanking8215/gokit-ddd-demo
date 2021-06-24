@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"gokit-ddd-demo/lib"
 	"net/http"
 	"strconv"
 
@@ -11,8 +12,6 @@ import (
 
 	//"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
-
-	"gokit-ddd-demo/user_svc/svc/common"
 )
 
 func decodeFindRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -51,13 +50,20 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 
 func errorEncoder(_ context.Context, failed error, w http.ResponseWriter) {
 	statusCode := http.StatusInternalServerError
-	if failed == common.ErrNotFound {
-		statusCode = http.StatusNotFound
+	err, ok := failed.(lib.Error)
+	if ok {
+		switch err.Code {
+		case lib.ErrNotFound:
+			statusCode = http.StatusNotFound
+		default:
+		}
+	} else {
+		err = lib.Error{Code: lib.ErrInternal, Message: failed.Error()}
 	}
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(errorWrapper{Error: failed.Error()})
+	json.NewEncoder(w).Encode(errorWrapper{err})
 }
 
 type errorWrapper struct {
-	Error string `json:"error"`
+	Error error `json:"err"`
 }

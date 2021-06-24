@@ -3,19 +3,17 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
+	"strconv"
 
-	//"strings"
+	"github.com/gorilla/mux"
 
-	//"github.com/go-kit/kit/endpoint"
-
-	"gokit-ddd-demo/user_svc/svc/common"
+	"gokit-ddd-demo/lib"
 )
 
 func decodeFindUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vals := r.URL.Query()
-	fmt.Println(vals)
 	v, ok := vals["with_orders"]
 	if ok {
 		if len(v) > 0 && v[0] == "true" {
@@ -23,6 +21,20 @@ func decodeFindUserRequest(_ context.Context, r *http.Request) (interface{}, err
 		}
 	}
 	return false, nil
+}
+
+func decodeGetUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	idstr := vars["id"]
+	if idstr == "" {
+		return nil, errors.New("invalid id")
+	}
+
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return id, nil
 }
 
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
@@ -36,13 +48,20 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 
 func errorEncoder(_ context.Context, failed error, w http.ResponseWriter) {
 	statusCode := http.StatusInternalServerError
-	if failed == common.ErrNotFound {
-		statusCode = http.StatusNotFound
+	err, ok := failed.(lib.Error)
+	if ok {
+		switch err.Code {
+		case lib.ErrNotFound:
+			statusCode = http.StatusNotFound
+		default:
+		}
+	} else {
+		err = lib.Error{Code: lib.ErrInternal, Message: failed.Error()}
 	}
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(errorWrapper{Error: failed.Error()})
+	json.NewEncoder(w).Encode(errorWrapper{err})
 }
 
 type errorWrapper struct {
-	Error string `json:"error"`
+	Error error `json:"error"`
 }

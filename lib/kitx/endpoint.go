@@ -5,6 +5,7 @@ import (
 	// "fmt"
 	// "time"
 
+	"gokit-ddd-demo/lib"
 	"io"
 	"sync"
 	"time"
@@ -86,9 +87,17 @@ func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpc.Cli
 	endpointer := sd.NewEndpointer(instancer, factory, logger)
 	balancer := lb.NewRoundRobin(endpointer)
 
+	retryMax := 1
+	timeout := 3 * time.Second
 	if opts.loadBalanceOption.retryMax > 0 {
-		return lb.Retry(opts.loadBalanceOption.retryMax, opts.loadBalanceOption.timeout, balancer)
+		retryMax = opts.loadBalanceOption.retryMax
+		timeout = opts.loadBalanceOption.timeout
 	}
 
-	return lb.Retry(1, 3*time.Second, balancer)
+	return lb.RetryWithCallback(timeout, balancer, func(n int, received error) (bool, error) {
+		if _, ok := received.(lib.Error); ok {
+			return false, received
+		}
+		return n < retryMax, nil
+	})
 }

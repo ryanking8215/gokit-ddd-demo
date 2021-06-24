@@ -63,21 +63,20 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 			decodeFindResponse,
 			orderpb.FindReply{},
 			options...,
-		//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint(), "order_srv.rpc.Find"
 	}, opts)
 
-	// c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
-	// 	return grpctransport.NewClient(
-	// 		conn,
-	// 		"pb.UserSvc",
-	// 		"Get",
-	// 		encodeGetRequest,
-	// 		decodeGetResponse,
-	// 		userpb.GetReply{},
-	// 		//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
-	// 	).Endpoint(), "user_srv.rpc.Get"
-	// }, opts...)
+	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
+		return grpctransport.NewClient(
+			conn,
+			"pb.UserSvc",
+			"Get",
+			encodeGetRequest,
+			decodeGetResponse,
+			orderpb.GetReply{},
+			options...,
+		).Endpoint(), "order_srv.rpc.Get"
+	}, opts)
 
 	return c
 }

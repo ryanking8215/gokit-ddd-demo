@@ -3,7 +3,7 @@ package inmem
 import (
 	"sync"
 
-	"gokit-ddd-demo/user_svc/svc/common"
+	"gokit-ddd-demo/lib"
 	"gokit-ddd-demo/user_svc/svc/user"
 )
 
@@ -53,7 +53,7 @@ func (r *userRepo) Get(id int64) (*user.User, error) {
 
 	u, ok := r.users[id]
 	if !ok {
-		return nil, common.ErrNotFound
+		return nil, lib.NewError(lib.ErrNotFound, "")
 	}
 	uclone := *u
 	return &uclone, nil
@@ -65,7 +65,7 @@ func (r *userRepo) Delete(id int64) error {
 
 	_, ok := r.users[id]
 	if !ok {
-		return common.ErrNotFound
+		return lib.NewError(lib.ErrNotFound, "")
 	}
 	delete(r.users, id)
 

@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 
+	"gokit-ddd-demo/lib"
+	"gokit-ddd-demo/user_svc/api"
 	"gokit-ddd-demo/user_svc/api/grpc/pb"
 	"gokit-ddd-demo/user_svc/svc/user"
 )
@@ -28,8 +30,18 @@ func decodeGetRequest(_ context.Context, grpcReq interface{}) (interface{}, erro
 }
 
 func encodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
-	u := response.(*user.User)
+	r := response.(*api.Response)
 	rsp := &pb.GetReply{}
+	if r.Error != nil {
+		if err, ok := r.Error.(lib.Error); ok {
+			rsp.Err = &pb.Error{Code: int32(err.Code), Reason: err.Message}
+		} else {
+			rsp.Err = &pb.Error{Code: int32(lib.ErrInternal), Reason: r.Error.Error()}
+		}
+		return rsp, nil
+	}
+
+	u := r.Value.(*user.User)
 	rsp.User = &pb.User{Id: u.ID, Name: u.Name}
 	return rsp, nil
 }
@@ -58,6 +70,11 @@ func encodeGetRequest(_ context.Context, request interface{}) (interface{}, erro
 
 func decodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
 	reply := response.(*pb.GetReply)
+	err := reply.GetErr()
+	if err != nil {
+		return nil, lib.NewError(int(err.Code), err.Reason)
+	}
+
 	u := reply.GetUser()
 	var item *user.User
 	if u != nil {

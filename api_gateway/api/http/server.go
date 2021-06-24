@@ -45,7 +45,6 @@ func makeUserHTTPHandler(s svc.Service, r *mux.Router, httpOpts []httptransport.
 			ep := api.MakeFindUsersEndpoint(s)
 			return ep, "user_svc.Find"
 		}, opts)
-
 		r.Handle("/api/users", httptransport.NewServer(
 			ep,
 			decodeFindUserRequest,
@@ -54,12 +53,17 @@ func makeUserHTTPHandler(s svc.Service, r *mux.Router, httpOpts []httptransport.
 		)).Methods("GET")
 	}
 
-	// TODO
-	// r.Handle("/users/{id:[0-9]+}", httptransport.NewServer(
-	// 	api.MakeGetUserEndpoint(s),
-	// 	decodeGetRequest,
-	// 	encodeResponse,
-	// 	options...,
-	// //append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Concat", logger)))...,
-	// )).Methods("GET")
+	{
+		ep := kitx.ServerEndpoint(func() (endpoint.Endpoint, string) {
+			ep := api.MakeGetUserEndpoint(s)
+			return ep, "user_svc.Get"
+		}, opts)
+		r.Handle("/api/users/{id:[0-9]+}", httptransport.NewServer(
+			ep,
+			decodeGetUserRequest,
+			encodeResponse,
+			httpOpts...,
+		//append(options, httptransport.ServerBefore(opentracing.HTTPToContext(otTracer, "Concat", logger)))...,
+		)).Methods("GET")
+	}
 }

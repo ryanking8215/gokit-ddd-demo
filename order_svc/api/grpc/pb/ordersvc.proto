@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package pb;
+option go_package = "./;pb";
 
 //import "google/protobuf/empty.proto";
 
@@ -31,5 +32,6 @@ message FindReply {
 
 message GetReply {
   Order order = 1;
+  Error err = 2;
 }
 

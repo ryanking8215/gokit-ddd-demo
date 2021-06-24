@@ -19,6 +19,7 @@ var _ pb.UserSvcServer = (*grpcServer)(nil)
 type grpcServer struct {
 	find grpctransport.Handler
 	get  grpctransport.Handler
+	pb.UnimplementedUserSvcServer
 }
 
 func makeFindHandler(svc user.Service, options []grpctransport.ServerOption, opts *kitx.ServerOptions) grpctransport.Handler {

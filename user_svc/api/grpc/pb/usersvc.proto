@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package pb;
+option go_package = "./;pb";
 
 //import "google/protobuf/empty.proto";
 
@@ -28,10 +29,12 @@ message User {
 }
 
 message FindReply {
-  repeated User users=1;
+  repeated User users = 1;
+  Error err = 2;
 }
 
 message GetReply {
   User user = 1;
+  Error err = 2;
 }
 

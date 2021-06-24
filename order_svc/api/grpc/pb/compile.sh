@@ -11,4 +11,4 @@
 # See also
 #  https://github.com/grpc/grpc-go/tree/master/examples
 
-protoc ordersvc.proto --go_out=plugins=grpc:.
+protoc ordersvc.proto --go_out=. --go-grpc_out=.

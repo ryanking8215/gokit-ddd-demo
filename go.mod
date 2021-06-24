@@ -19,4 +19,5 @@ require (
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.25.0 // indirect
 )

@@ -34,7 +34,7 @@ func (c *Client) Get(ctx context.Context, id int64) (*user.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return rsp.(*user.User), err
+	return rsp.(*user.User), nil
 }
 
 func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
@@ -55,7 +55,6 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 			decodeFindResponse,
 			userpb.FindReply{},
 			options...,
-		// append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint(), "user_srv.rpc.Find"
 	}, opts)
 
@@ -68,7 +67,6 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 			decodeGetResponse,
 			userpb.GetReply{},
 			options...,
-		//append(options, grpctransport.ClientBefore(opentracing.ContextToGRPC(otTracer, logger)))...,
 		).Endpoint(), "user_srv.rpc.Get"
 	}, opts)
 

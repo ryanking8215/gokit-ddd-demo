@@ -3,7 +3,7 @@ package inmem
 import (
 	"sync"
 
-	"gokit-ddd-demo/order_svc/svc/common"
+	"gokit-ddd-demo/lib"
 	"gokit-ddd-demo/order_svc/svc/order"
 )
 
@@ -61,7 +61,7 @@ func (r *orderRepo) Get(id int64) (*order.Order, error) {
 
 	o, ok := r.orders[id]
 	if !ok {
-		return nil, common.ErrNotFound
+		return nil, lib.NewError(lib.ErrNotFound, "")
 	}
 	oclone := *o
 	return &oclone, nil
@@ -73,7 +73,7 @@ func (r *orderRepo) Delete(id int64) error {
 
 	_, ok := r.orders[id]
 	if !ok {
-		return common.ErrNotFound
+		return lib.NewError(lib.ErrNotFound, "")
 	}
 	delete(r.orders, id)
 

@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 
+	"gokit-ddd-demo/lib"
+	"gokit-ddd-demo/order_svc/api"
 	"gokit-ddd-demo/order_svc/api/grpc/pb"
 	"gokit-ddd-demo/order_svc/svc/order"
 )
@@ -31,8 +33,19 @@ func decodeGetRequest(_ context.Context, grpcReq interface{}) (interface{}, erro
 }
 
 func encodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
-	o := response.(*order.Order)
+	r := response.(*api.Response)
 	rsp := &pb.GetReply{}
+
+	if r.Error != nil {
+		if err, ok := r.Error.(lib.Error); ok {
+			rsp.Err = &pb.Error{Code: int32(err.Code), Reason: err.Message}
+		} else {
+			rsp.Err = &pb.Error{Code: int32(lib.ErrInternal), Reason: r.Error.Error()}
+		}
+		return rsp, nil
+	}
+
+	o := r.Value.(*order.Order)
 	rsp.Order = &pb.Order{Id: o.ID, Userid: o.UserID, Product: o.Product}
 	return rsp, nil
 }
@@ -61,6 +74,11 @@ func encodeGetRequest(_ context.Context, request interface{}) (interface{}, erro
 
 func decodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
 	reply := response.(*pb.GetReply)
+	err := reply.GetErr()
+	if err != nil {
+		return nil, lib.NewError(int(err.Code), err.Reason)
+	}
+
 	o := reply.GetOrder()
 	var item *order.Order
 	if o != nil {

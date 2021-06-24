@@ -1,13 +1,31 @@
 # gokit ddd demo
 
 ## api gateway
+### bulid
+```
+cd api_gateway
+go build
+```
+
 * http server listen on :1323
 
 ## order service
+### build
+```
+cd order_svc/app/ordersvc
+go build
+```
+
 * grpc server listen on :8092
 * http server listen on :8091
 
 ## user service
+### build
+```
+cd user_svc/app/usersvc
+go build
+```
+
 * grpc server listen on :8082
 * http server listen on :8081
 

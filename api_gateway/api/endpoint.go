@@ -7,13 +7,12 @@ import (
 	"gokit-ddd-demo/user_svc/svc/user"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/sd/lb"
 )
 
 func MakeFindUsersEndpoint(s svc.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (reponse interface{}, err error) {
 		withOrders := request.(bool)
-		println(">>>>>>> ", withOrders)
-
 		users, err := s.UserService().Find(ctx)
 		if err != nil {
 			return nil, err
@@ -25,7 +24,6 @@ func MakeFindUsersEndpoint(s svc.Service) endpoint.Endpoint {
 		}
 
 		if withOrders {
-			println("yyyyyyy")
 			for _, u := range usersRsp {
 				orders, err := s.OrderService().Find(ctx, u.ID)
 				if err != nil {
@@ -36,6 +34,21 @@ func MakeFindUsersEndpoint(s svc.Service) endpoint.Endpoint {
 		}
 
 		return usersRsp, nil
+	}
+}
+
+func MakeGetUserEndpoint(s svc.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (reponse interface{}, err error) {
+		id := request.(int64)
+		user, err := s.UserService().Get(ctx, id)
+		if err != nil {
+			if retryErr, ok := err.(lb.RetryError); ok {
+				return nil, retryErr.Final
+			}
+			return nil, err
+		}
+
+		return user, nil
 	}
 }
 

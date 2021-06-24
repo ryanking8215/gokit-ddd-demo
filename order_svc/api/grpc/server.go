@@ -19,6 +19,7 @@ var _ pb.OrderSvcServer = (*grpcServer)(nil)
 type grpcServer struct {
 	find grpctransport.Handler
 	get  grpctransport.Handler
+	pb.UnimplementedOrderSvcServer
 }
 
 func makeFindHandler(svc order.Service, options []grpctransport.ServerOption, opts *kitx.ServerOptions) grpctransport.Handler {

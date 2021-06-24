@@ -11,4 +11,6 @@
 # See also
 #  https://github.com/grpc/grpc-go/tree/master/examples
 
-protoc usersvc.proto --go_out=plugins=grpc:.
+#protoc usersvc.proto --go_out=plugins=grpc:.
+
+protoc usersvc.proto --go_out=. --go-grpc_out=.
