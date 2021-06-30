@@ -1,0 +1,34 @@
+version: '3'
+
+networks:
+  demo_net:
+    driver: bridge
+
+services:
+  api_gateway:
+    image: gokit-ddd-demo/api_gateway
+    container_name: "api_gateway"
+    ports:
+      - "1323:1323"
+    networks:
+      - demo_net
+    command: "-zipkin-url http://zipkin:9411/api/v2/spans -usersvc user_svc:8082 -ordersvc order_svc:8092"
+  user_svc:
+    image: gokit-ddd-demo/user_svc
+    container_name: "user_svc"
+    networks:
+      - demo_net
+    command: "-zipkin-url http://zipkin:9411/api/v2/spans"
+  order_svc:
+    image: gokit-ddd-demo/order_svc
+    container_name: "order_svc"
+    networks:
+      - demo_net
+    command: "-zipkin-url http://zipkin:9411/api/v2/spans"
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: "zipkin"
+    ports:
+      - "9411:9411"
+    networks:
+      - demo_net

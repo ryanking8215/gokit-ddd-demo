@@ -28,6 +28,7 @@ message Order {
 
 message FindReply {
   repeated Order order=1;
+  Error err = 2;
 }
 
 message GetReply {

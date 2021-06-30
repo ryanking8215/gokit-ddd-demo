@@ -29,6 +29,6 @@ func MakeGetEndpoint(s order.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		id := request.(int64)
 		v, err := s.Get(ctx, id)
-		return v, err
+		return Response{v, err}, nil
 	}
 }

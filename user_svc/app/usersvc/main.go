@@ -33,7 +33,7 @@ func main() {
 		//thriftProtocol = fs.String("thrift-protocol", "binary", "binary, compact, json, simplejson")
 		//thriftBuffer   = fs.Int("thrift-buffer", 0, "0 for unbuffered")
 		//thriftFramed   = fs.Bool("thrift-framed", false, "true to enable framing")
-		//zipkinV2URL    = fs.String("zipkin-url", "", "Enable Zipkin v2 tracing (zipkin-go) using a Reporter URL e.g. http://localhost:9411/api/v2/spans")
+		zipkinV2URL = fs.String("zipkin-url", "", "Enable Zipkin v2 tracing (zipkin-go) using a Reporter URL e.g. http://localhost:9411/api/v2/spans")
 		//zipkinV1URL    = fs.String("zipkin-v1-url", "", "Enable Zipkin v1 tracing (zipkin-go-opentracing) using a collector URL e.g. http://localhost:9411/api/v1/spans")
 		//lightstepToken = fs.String("lightstep-token", "", "Enable LightStep tracing via a LightStep access token")
 		//appdashAddr    = fs.String("appdash-addr", "", "Enable Appdash tracing via an Appdash server host:port")
@@ -52,24 +52,27 @@ func main() {
 	// init zipkin trancer
 	var tracer *zipkin.Tracer
 	{
-		zipkinUrl := "http://127.0.0.1:9411/api/v2/spans"
-		zipkinEndpoint, err := zipkin.NewEndpoint("user-svc", "")
-		if err != nil {
-			panic(err)
+		if *zipkinV2URL != "" {
+			zipkinEndpoint, err := zipkin.NewEndpoint("user-svc", "")
+			if err != nil {
+				panic(err)
+			}
+			reporter := zipkinhttp.NewReporter(*zipkinV2URL)
+			zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
+			if err != nil {
+				panic(err)
+			}
+			tracer = zipkinTracer
+		} else {
+			zipkinTracer, _ := zipkin.NewTracer(nil, zipkin.WithNoopTracer(true))
+			tracer = zipkinTracer
 		}
-		reporter := zipkinhttp.NewReporter(zipkinUrl)
-		zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
-		if err != nil {
-			panic(err)
-		}
-		tracer = zipkinTracer
 	}
 
 	// init infras and svc
 	var (
 		userRepo = inmem.NewUserRepo()
-		//orderGRPCClient = ordergrpc.NewGRPCClient(sd.FixedInstancer{":8092"}, 3, 5*time.Second, logger)
-		userSvc = user.NewUserService(userRepo)
+		userSvc  = user.NewUserService(userRepo)
 	)
 	_ = userRepo.InitMockData([]*user.User{
 		{ID: 1, Name: "user1"},

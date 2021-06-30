@@ -15,8 +15,19 @@ func decodeFindRequest(_ context.Context, grpcReq interface{}) (interface{}, err
 }
 
 func encodeFindResponse(_ context.Context, response interface{}) (interface{}, error) {
-	users := response.([]*user.User)
+	r := response.(api.Response)
 	rsp := &pb.FindReply{}
+
+	if r.Error != nil {
+		if err, ok := r.Error.(lib.Error); ok {
+			rsp.Err = &pb.Error{Code: int32(err.Code), Reason: err.Message}
+		} else {
+			rsp.Err = &pb.Error{Code: int32(lib.ErrInternal), Reason: r.Error.Error()}
+		}
+		return rsp, nil
+	}
+
+	users := r.Value.([]*user.User)
 	for _, u := range users {
 		pbUser := &pb.User{Id: u.ID, Name: u.Name}
 		rsp.Users = append(rsp.Users, pbUser)
@@ -30,7 +41,7 @@ func decodeGetRequest(_ context.Context, grpcReq interface{}) (interface{}, erro
 }
 
 func encodeGetResponse(_ context.Context, response interface{}) (interface{}, error) {
-	r := response.(*api.Response)
+	r := response.(api.Response)
 	rsp := &pb.GetReply{}
 	if r.Error != nil {
 		if err, ok := r.Error.(lib.Error); ok {
