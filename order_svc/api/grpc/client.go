@@ -7,7 +7,8 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/tracing/zipkin"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
-	"google.golang.org/grpc"
+	grpcpool "github.com/processout/grpc-go-pool"
+	"google.golang.org/grpc/metadata"
 
 	"gokit-ddd-demo/lib/kitx"
 	orderpb "gokit-ddd-demo/order_svc/api/grpc/pb"
@@ -52,29 +53,34 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 	tracer := opts.ZipkinTracer()
 	if tracer != nil {
 		options = append(options, zipkin.GRPCClientTrace(tracer))
+		options = append(options, grpctransport.ClientFinalizer(kitx.GRPCClientFinalizer)) // take care of the conn from grpc conn pool
 	}
 
-	c.find = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
+	c.find = kitx.GRPCClientEndpoint(instancer, func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
-			conn,
+			conn.ClientConn,
 			"pb.OrderSvc",
 			"Find",
 			encodeFindRequest,
 			decodeFindResponse,
 			orderpb.FindReply{},
-			options...,
+			append(options, grpctransport.ClientBefore(func(ctx context.Context, _ *metadata.MD) context.Context {
+				return context.WithValue(ctx, kitx.GRPCConnKey, conn) // inject the conn to ctx
+			}))...,
 		).Endpoint(), "order_srv.rpc.Find"
 	}, opts)
 
-	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
+	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
-			conn,
+			conn.ClientConn,
 			"pb.UserSvc",
 			"Get",
 			encodeGetRequest,
 			decodeGetResponse,
 			orderpb.GetReply{},
-			options...,
+			append(options, grpctransport.ClientBefore(func(ctx context.Context, _ *metadata.MD) context.Context {
+				return context.WithValue(ctx, kitx.GRPCConnKey, conn) // inject the conn to ctx
+			}))...,
 		).Endpoint(), "order_srv.rpc.Get"
 	}, opts)
 

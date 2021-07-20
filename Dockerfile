@@ -34,4 +34,4 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /opt/gokit-ddd-demo/order_svc
 COPY --from=builder /go/src/gokit-ddd-demo/order_svc/app/ordersvc/ordersvc .
 EXPOSE 8091 8092
- ENTRYPOINT ["./ordersvc"]
+ENTRYPOINT ["./ordersvc"]
