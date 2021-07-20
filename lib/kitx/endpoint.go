@@ -104,6 +104,8 @@ func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpc.Cli
 	timeout := 3 * time.Second
 	if opts.loadBalanceOption.retryMax > 0 {
 		retryMax = opts.loadBalanceOption.retryMax
+	}
+	if opts.loadBalanceOption.timeout > 0 {
 		timeout = opts.loadBalanceOption.timeout
 	}
 
@@ -111,7 +113,7 @@ func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpc.Cli
 		if _, ok := received.(lib.Error); ok {
 			return false, received
 		}
-		return n < retryMax, nil
+		return n < retryMax, received
 	})
 }
 

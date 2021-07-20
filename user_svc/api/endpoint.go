@@ -16,7 +16,7 @@ type Response struct {
 func MakeFindEndpoint(s user.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		v, err := s.Find(ctx)
-		return &Response{v, err}, nil
+		return Response{v, err}, nil
 	}
 }
 
@@ -24,6 +24,6 @@ func MakeGetEndpoint(s user.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		id := request.(int64)
 		v, err := s.Get(ctx, id)
-		return &Response{v, err}, nil
+		return Response{v, err}, nil
 	}
 }

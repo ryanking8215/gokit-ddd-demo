@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"net/http"
 	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -20,6 +23,23 @@ import (
 )
 
 func main() {
+	fs := flag.NewFlagSet("ordersvc", flag.ExitOnError)
+	var (
+		//debugAddr      = fs.String("debug.addr", ":8080", "Debug and metrics listen address")
+		httpAddr = fs.String("http-addr", ":1323", "HTTP listen address")
+		//jsonRPCAddr    = fs.String("jsonrpc-addr", ":8084", "JSON RPC listen address")
+		//thriftProtocol = fs.String("thrift-protocol", "binary", "binary, compact, json, simplejson")
+		//thriftBuffer   = fs.Int("thrift-buffer", 0, "0 for unbuffered")
+		//thriftFramed   = fs.Bool("thrift-framed", false, "true to enable framing")
+		zipkinV2URL      = fs.String("zipkin-url", "", "Enable Zipkin v2 tracing (zipkin-go) using a Reporter URL e.g. http://localhost:9411/api/v2/spans")
+		usersvcInstance  = fs.String("usersvc", ":8082", "Instance of user service")
+		ordersvcInstance = fs.String("ordersvc", ":8092", "Instance of order service")
+		//zipkinV1URL    = fs.String("zipkin-v1-url", "", "Enable Zipkin v1 tracing (zipkin-go-opentracing) using a collector URL e.g. http://localhost:9411/api/v1/spans")
+		//lightstepToken = fs.String("lightstep-token", "", "Enable LightStep tracing via a LightStep access token")
+		//appdashAddr    = fs.String("appdash-addr", "", "Enable Appdash tracing via an Appdash server host:port")
+	)
+	fs.Usage = usageFor(fs, os.Args[0]+" [flags]")
+	fs.Parse(os.Args[1:])
 	errc := make(chan error)
 
 	var logger log.Logger
@@ -32,20 +52,22 @@ func main() {
 	// init zipkin trancer
 	var tracer *zipkin.Tracer
 	{
-		zipkinUrl := "http://127.0.0.1:9411/api/v2/spans"
-		zipkinEndpoint, err := zipkin.NewEndpoint("api-gateway", "")
-		if err != nil {
-			panic(err)
+		if *zipkinV2URL != "" {
+			zipkinEndpoint, err := zipkin.NewEndpoint("api-gateway", "")
+			if err != nil {
+				panic(err)
+			}
+			reporter := zipkinhttp.NewReporter(*zipkinV2URL)
+			zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
+			if err != nil {
+				panic(err)
+			}
+			tracer = zipkinTracer
+		} else {
+			zipkinTracer, _ := zipkin.NewTracer(nil, zipkin.WithNoopTracer(true))
+			tracer = zipkinTracer
 		}
-		reporter := zipkinhttp.NewReporter(zipkinUrl)
-		zipkinTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(zipkinEndpoint))
-		if err != nil {
-			panic(err)
-		}
-		tracer = zipkinTracer
 	}
-
-	httpAddr := ":1323"
 
 	// contructor our service
 	var (
@@ -55,22 +77,37 @@ func main() {
 
 	cliOpts := kitx.NewClientOptions(kitx.WithLogger(logger), kitx.WithLoadBalance(3, 5*time.Second), kitx.WithZipkinTracer(tracer))
 	{
-		instance := []string{":8082"}
+		instance := []string{*usersvcInstance}
 		usersvc = usergrpc.NewClient(sd.FixedInstancer(instance), cliOpts)
 	}
 	{
-		instance := []string{":8092"}
+		instance := []string{*ordersvcInstance}
 		ordersvc = ordergrpc.NewClient(sd.FixedInstancer(instance), cliOpts)
 	}
 	svc := svc.NewService(usersvc, ordersvc)
 
 	go func() {
 		srvOpts := kitx.NewServerOptions(kitx.WithLogger(logger), kitx.WithRateLimit(nil), kitx.WithCircuitBreaker(0), kitx.WithMetrics(nil), kitx.WithZipkinTracer(tracer))
-		logger.Log("transport", "HTTP", "addr", httpAddr)
+		logger.Log("transport", "HTTP", "addr", *httpAddr)
 		handler := apihttp.NewHTTPHandler(svc, srvOpts)
-		errc <- http.ListenAndServe(httpAddr, handler)
+		errc <- http.ListenAndServe(*httpAddr, handler)
 	}()
 
 	err := <-errc
 	logger.Log(err)
+}
+
+func usageFor(fs *flag.FlagSet, short string) func() {
+	return func() {
+		fmt.Fprintf(os.Stderr, "USAGE\n")
+		fmt.Fprintf(os.Stderr, "  %s\n", short)
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "FLAGS\n")
+		w := tabwriter.NewWriter(os.Stderr, 0, 2, 2, ' ', 0)
+		fs.VisitAll(func(f *flag.Flag) {
+			fmt.Fprintf(w, "\t-%s %s\t%s\n", f.Name, f.DefValue, f.Usage)
+		})
+		w.Flush()
+		fmt.Fprintf(os.Stderr, "\n")
+	}
 }

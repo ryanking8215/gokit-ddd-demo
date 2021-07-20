@@ -13,13 +13,20 @@ cd user_svc/app/usersvc
 go build
 ```
 
-### docker
+### docker build
 ```
 docker build --target api_gateway -t gokit-ddd-demo/api_gateway .
 docker build --target user_svc -t gokit-ddd-demo/user_svc .
 docker build --target order_svc -t gokit-ddd-demo/order_svc .
 ```
 
+## running
+docker-compose is recommended.
+```
+docker-compose up
+```
+
+## Exposed Ports
 ## api gateway
 * http server listen on :1323
 

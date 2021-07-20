@@ -20,20 +20,18 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /opt/gokit-ddd-demo/api_gateway
 COPY --from=builder /go/src/gokit-ddd-demo/api_gateway/api_gateway .
 EXPOSE 1323
-CMD ["./api_gateway"]
+ENTRYPOINT ["./api_gateway"]
 
 FROM alpine:latest AS user_svc
 RUN apk --no-cache add ca-certificates
 WORKDIR /opt/gokit-ddd-demo/user_svc
 COPY --from=builder /go/src/gokit-ddd-demo/user_svc/app/usersvc/usersvc .
-EXPOSE 8081
-EXPOSE 8082
-CMD ["./usersvc"]
+EXPOSE 8081 8082
+ENTRYPOINT ["./usersvc"]
 
 FROM alpine:latest AS order_svc
 RUN apk --no-cache add ca-certificates
 WORKDIR /opt/gokit-ddd-demo/order_svc
 COPY --from=builder /go/src/gokit-ddd-demo/order_svc/app/ordersvc/ordersvc .
-EXPOSE 8091
-EXPOSE 8092
-CMD ["./ordersvc"]
+EXPOSE 8091 8092
+ ENTRYPOINT ["./ordersvc"]
