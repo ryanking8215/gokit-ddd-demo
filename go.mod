@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/mux v1.6.2
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin/zipkin-go v0.2.5
+	github.com/processout/grpc-go-pool v1.2.1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/sony/gobreaker v0.4.1
 	github.com/streadway/handy v0.0.0-20190108123426-d5acb3125c2a // indirect
