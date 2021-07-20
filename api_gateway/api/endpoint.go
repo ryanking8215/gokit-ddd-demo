@@ -38,7 +38,7 @@ func MakeFindUsersEndpoint(s svc.Service) endpoint.Endpoint {
 }
 
 func MakeGetUserEndpoint(s svc.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (reponse interface{}, err error) {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		id := request.(int64)
 		user, err := s.UserService().Get(ctx, id)
 		if err != nil {
