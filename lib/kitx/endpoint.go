@@ -1,10 +1,6 @@
 package kitx
 
 import (
-	// "context"
-	// "fmt"
-	// "time"
-
 	"context"
 	"gokit-ddd-demo/lib"
 	"io"
@@ -22,6 +18,7 @@ import (
 	grpcpool "github.com/processout/grpc-go-pool"
 	"github.com/sony/gobreaker"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func ServerEndpoint(makeEndpoint func() (endpoint.Endpoint, string), options *ServerOptions) endpoint.Endpoint {
@@ -51,7 +48,7 @@ func ServerEndpoint(makeEndpoint func() (endpoint.Endpoint, string), options *Se
 
 var GRPCConnections sync.Map
 
-func newGRPCClientFactory(makeEndpoint func(conn *grpc.ClientConn) (endpoint.Endpoint, string), opts *ClientOptions) sd.Factory {
+func newGRPCClientFactory(makeEndpoint func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string), opts *ClientOptions) sd.Factory {
 	return func(instance string) (i endpoint.Endpoint, closer io.Closer, e error) {
 		var pool *grpcpool.Pool
 		var err error
@@ -72,7 +69,7 @@ func newGRPCClientFactory(makeEndpoint func(conn *grpc.ClientConn) (endpoint.End
 		if err != nil {
 			return nil, nil, err
 		}
-		ep, name := makeEndpoint(pconn.ClientConn)
+		ep, name := makeEndpoint(pconn)
 
 		if opts.openTracingOption.otTracer != nil {
 			ep = opentracing.TraceClient(opts.openTracingOption.otTracer, name)(ep)
@@ -93,7 +90,7 @@ func newGRPCClientFactory(makeEndpoint func(conn *grpc.ClientConn) (endpoint.End
 	}
 }
 
-func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpc.ClientConn) (endpoint.Endpoint, string), opts *ClientOptions) endpoint.Endpoint {
+func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string), opts *ClientOptions) endpoint.Endpoint {
 	factory := newGRPCClientFactory(makeEndpoint, opts)
 
 	logger := opts.Logger()
@@ -120,17 +117,26 @@ func GRPCClientEndpoint(instancer sd.Instancer, makeEndpoint func(conn *grpc.Cli
 var GRPCConnKey = "grcpconn"
 
 func GRPCClientFinalizer(ctx context.Context, err error) {
+	println("enter")
 	v := ctx.Value(GRPCConnKey)
 	if v == nil {
 		return
 	}
+
 	pconn, ok := v.(*grpcpool.ClientConn)
 	if !ok {
 		return
 	}
+
 	defer pconn.Close()
 
 	if err != nil {
-		pconn.Unhealthy()
+		// if it is the grpc connection error, mark unhealthy
+		if _, ok := status.FromError(err); ok {
+			println("mark unhealthy")
+			pconn.Unhealthy()
+		}
 	}
+
+	println("leave")
 }

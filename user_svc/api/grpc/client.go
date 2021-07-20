@@ -7,7 +7,7 @@ import (
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/tracing/zipkin"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
-	"google.golang.org/grpc"
+	grpcpool "github.com/processout/grpc-go-pool"
 	"google.golang.org/grpc/metadata"
 
 	"gokit-ddd-demo/lib/kitx"
@@ -48,9 +48,9 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 		options = append(options, grpctransport.ClientFinalizer(kitx.GRPCClientFinalizer)) // take care of the conn from grpc conn pool
 	}
 
-	c.find = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
+	c.find = kitx.GRPCClientEndpoint(instancer, func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
-			conn,
+			conn.ClientConn,
 			"pb.UserSvc",
 			"Find",
 			encodeFindRequest,
@@ -62,9 +62,9 @@ func NewClient(instancer sd.Instancer, opts *kitx.ClientOptions) *Client {
 		).Endpoint(), "user_srv.rpc.Find"
 	}, opts)
 
-	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpc.ClientConn) (endpoint.Endpoint, string) {
+	c.get = kitx.GRPCClientEndpoint(instancer, func(conn *grpcpool.ClientConn) (endpoint.Endpoint, string) {
 		return grpctransport.NewClient(
-			conn,
+			conn.ClientConn,
 			"pb.UserSvc",
 			"Get",
 			encodeGetRequest,
